@@ -12,6 +12,8 @@ jobs:
   release:
     name: Create Release and Publish to crates.io
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
