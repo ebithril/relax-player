@@ -1,0 +1,202 @@
+# Relax Player
+
+A terminal-based sound player for creating relaxing ambient soundscapes. Features individual volume control for Rain, Thunder, and Campfire sounds with an alsamixer-style TUI interface.
+
+## Features
+
+- Play multiple looping ambient sounds simultaneously
+- Individual volume control for each sound (0-100%)
+- Master volume control
+- Mute/unmute individual sounds
+- Alsamixer-style vertical bar UI
+- Persistent configuration (volumes and mute states saved automatically)
+- Cross-platform (Linux, Windows, macOS)
+- Vim-style keybindings
+
+## Installation
+
+### From crates.io (recommended)
+
+```bash
+cargo install relax-player
+```
+
+On first run, the application will automatically download the sound files for you.
+
+### From source
+
+```bash
+cargo build --release
+./target/release/relax-player
+```
+
+**For development** (debug builds):
+```bash
+# Add sound files to ./sounds/ directory first
+mkdir -p sounds
+# Copy rain.mp3, thunder.mp3, campfire.mp3 into sounds/
+
+# Then run in debug mode
+cargo run
+```
+
+Debug builds check `./sounds/` in the current directory first, making local development easier. If sounds aren't found in CWD, they fall back to downloading from GitHub like release builds.
+
+**Release builds**: Sound files are automatically downloaded when you first run the application. They are stored in a platform-specific data directory and will be reused between sessions.
+
+## Sound Management
+
+### Automatic Downloads
+
+- **First install**: Sounds are automatically downloaded on first run
+- **Version updates**: When you update to a new version, you'll be prompted to download updated sounds
+- **Storage location**:
+  - **Linux**: `~/.local/share/relax-player/sounds/`
+  - **Windows**: `%APPDATA%\relax-player\sounds\`
+  - **macOS**: `~/Library/Application Support/relax-player/sounds/`
+
+The application downloads three sound files:
+- `rain.mp3` - Rain ambient sound
+- `thunder.mp3` - Thunder ambient sound
+- `campfire.mp3` - Campfire crackling sound
+
+## Controls
+
+### Navigation
+- `←` / `→` or `h` / `l` - Select previous/next channel
+- Channels: Rain → Thunder → Campfire → Master
+
+### Volume Control
+- `↑` / `↓` or `k` / `j` - Increase/decrease volume (±5%)
+- Volume range: 0-100%
+
+### Mute
+- `m` - Toggle mute for selected sound (not available for Master)
+
+### Other
+- `q` - Quit application
+
+## UI Layout
+
+```
+┌─────── Relax Player ───────────────────────┐
+│  Rain     Thunder   Campfire    Master     │
+│   ┃         ┃         ┃           ┃        │
+│   ┃         ┃         ▓▓▓         ┃        │
+│   ┃         ┃         ▓▓▓         ▓▓▓      │
+│   ▓▓▓       ┃         ▓▓▓         ▓▓▓      │
+│   ▓▓▓       ░░░       ▓▓▓         ▓▓▓      │
+│   ▓▓▓       ░░░       ▓▓▓         ▓▓▓      │
+│   ▓▓▓       ░░░       ▓▓▓         ▓▓▓      │
+│  [80%]     [30%]🔇   [100%]       [70%]     │
+│    ^                                        │
+├────────────────────────────────────────────┤
+│ ←/→ h/l: Select  ↑/↓ j/k: Volume  m: Mute │
+│ q: Quit                                    │
+└────────────────────────────────────────────┘
+```
+
+- `▓▓▓` - Active volume bars (green for selected, cyan for others)
+- `░░░` - Muted sound
+- `┃` - Empty bar space
+- `^` - Selected channel indicator
+- `🔇` - Mute indicator
+
+## Configuration
+
+Settings are automatically saved to a configuration file when changed:
+
+- **Linux**: `~/.config/relax-player/config.json`
+- **Windows**: `%APPDATA%\relax-player\config.json`
+- **macOS**: `~/Library/Application Support/relax-player/config.json`
+
+The config file stores:
+- Individual volume levels for each sound
+- Mute states
+- Master volume
+- Downloaded sounds version (for update tracking)
+
+Settings persist between sessions, so your preferred volumes are restored when you restart the application.
+
+## How It Works
+
+- **Volume Calculation**: Each sound's effective volume = (individual volume × master volume) / 100
+- **Looping**: All sounds loop continuously when not muted
+- **Master Volume**: Affects all sounds proportionally without changing their individual settings
+
+## Dependencies
+
+- [rodio](https://github.com/RustAudio/rodio) - Audio playback
+- [ratatui](https://github.com/ratatui-org/ratatui) - Terminal UI
+- [crossterm](https://github.com/crossterm-rs/crossterm) - Terminal control
+- [serde](https://serde.rs/) - Configuration serialization
+- [directories](https://github.com/dirs-dev/directories-rs) - Cross-platform config paths
+- [reqwest](https://github.com/seanmonstar/reqwest) - HTTP downloads
+- [tar](https://github.com/alexcrichton/tar-rs) - Archive extraction
+- [flate2](https://github.com/rust-lang/flate2-rs) - Gzip compression
+
+## For Maintainers
+
+### Automated Release Process
+
+This project uses GitHub Actions to automate the release process. Everything is handled automatically - just push a tag!
+
+#### Prerequisites (one-time setup)
+
+1. **Add sound files to the repository**:
+   ```bash
+   mkdir -p sounds
+   # Add your MP3 files:
+   # - sounds/rain.mp3
+   # - sounds/thunder.mp3
+   # - sounds/campfire.mp3
+   ```
+   Commit these files to the repository (they should be tracked in git).
+
+2. **Set up crates.io token**:
+   - Generate a token at https://crates.io/me/tokens
+   - Add it to GitHub repository secrets as `CARGO_REGISTRY_TOKEN`:
+     - Go to: Settings → Secrets and variables → Actions → New repository secret
+     - Name: `CARGO_REGISTRY_TOKEN`
+     - Value: Your crates.io API token
+
+#### Creating a Release
+
+1. **Update version in `Cargo.toml`**:
+   ```toml
+   version = "0.1.0"  # Update to your new version
+   ```
+
+2. **Commit and push**:
+   ```bash
+   git add Cargo.toml Cargo.lock
+   git commit -m "Bump version to 0.1.0"
+   git push
+   ```
+
+3. **Create and push a tag**:
+   ```bash
+   git tag v0.1.0
+   git push origin v0.1.0
+   ```
+
+That's it! The GitHub Actions workflow will automatically:
+- ✅ Verify the tag version matches `Cargo.toml`
+- ✅ Check that all required sound files exist
+- ✅ Create `sounds.tar.gz` from the `sounds/` directory
+- ✅ Build and test the project
+- ✅ Create a GitHub release with the tag
+- ✅ Upload `sounds.tar.gz` as a release asset
+- ✅ Publish the crate to crates.io
+
+You can monitor the progress in the "Actions" tab on GitHub.
+
+**Important Notes**:
+- The tag must be in the format `v{version}` (e.g., `v0.1.0`)
+- The tag version must exactly match the version in `Cargo.toml`
+- Sound files must be committed to the repository before tagging
+- The workflow file is at `.github/workflows/release.yml`
+
+## License
+
+This project is open source and available for personal use.

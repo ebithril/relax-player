@@ -1,0 +1,107 @@
+use anyhow::{Context, Result};
+use flate2::read::GzDecoder;
+use std::path::{Path, PathBuf};
+use tar::Archive;
+
+use crate::config::Config;
+
+const REQUIRED_SOUNDS: &[&str] = &["rain.mp3", "thunder.mp3", "campfire.mp3"];
+
+/// Check if all required sound files exist in the CWD's sounds/ directory
+pub fn check_cwd_sounds() -> bool {
+    let cwd_sounds = Path::new("sounds");
+
+    if !cwd_sounds.exists() || !cwd_sounds.is_dir() {
+        return false;
+    }
+
+    for sound in REQUIRED_SOUNDS {
+        let sound_path = cwd_sounds.join(sound);
+        if !sound_path.exists() {
+            return false;
+        }
+    }
+
+    true
+}
+
+/// Get the sounds directory path
+/// In debug mode: Check CWD first, fall back to data directory
+/// In release mode: Use data directory only
+pub fn get_sounds_dir() -> Result<PathBuf> {
+    if cfg!(debug_assertions) && check_cwd_sounds() {
+        Ok(PathBuf::from("sounds"))
+    } else {
+        Config::sounds_dir()
+    }
+}
+
+/// Check if all required sound files exist in the sounds directory
+/// In debug mode: Checks CWD first, then data directory
+/// In release mode: Only checks data directory
+pub fn sounds_exist() -> Result<bool> {
+    let sounds_dir = get_sounds_dir()?;
+
+    for sound in REQUIRED_SOUNDS {
+        let sound_path = sounds_dir.join(sound);
+        if !sound_path.exists() {
+            return Ok(false);
+        }
+    }
+
+    Ok(true)
+}
+
+/// Download and extract sounds from GitHub release
+pub fn download_sounds(github_user: &str, github_repo: &str, version: &str) -> Result<()> {
+    let url = format!(
+        "https://github.com/{}/{}/releases/download/v{}/sounds.tar.gz",
+        github_user, github_repo, version
+    );
+
+    println!("Downloading sounds from: {}", url);
+
+    // Download the file
+    let response = reqwest::blocking::get(&url)
+        .context("Failed to download sounds")?;
+
+    if !response.status().is_success() {
+        anyhow::bail!(
+            "Failed to download sounds: HTTP status {}. Make sure the release exists with sounds.tar.gz attached.",
+            response.status()
+        );
+    }
+
+    let bytes = response.bytes()
+        .context("Failed to read download response")?;
+
+    println!("Downloaded {} bytes", bytes.len());
+
+    // Extract to sounds directory
+    let sounds_dir = Config::sounds_dir()?;
+    let decoder = GzDecoder::new(&bytes[..]);
+    let mut archive = Archive::new(decoder);
+
+    println!("Extracting to: {}", sounds_dir.display());
+    archive.unpack(&sounds_dir)
+        .context("Failed to extract sounds archive")?;
+
+    // Verify all sounds were extracted
+    if !sounds_exist()? {
+        anyhow::bail!(
+            "Sound extraction completed but some files are missing. Expected: {:?}",
+            REQUIRED_SOUNDS
+        );
+    }
+
+    println!("Sounds downloaded successfully!");
+    Ok(())
+}
+
+/// Check if version needs update (returns true if update needed)
+pub fn needs_update(current_version: &str, stored_version: Option<&str>) -> bool {
+    match stored_version {
+        None => true, // No version stored means first install or needs update
+        Some(stored) => stored != current_version,
+    }
+}
