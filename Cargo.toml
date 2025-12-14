@@ -1,7 +1,15 @@
 [package]
 name = "relax-player"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+authors = ["ebithril"]
+description = "A terminal-based relaxation sound player with ambient sounds like rain, thunder, and campfire"
+license = "MIT"
+repository = "https://github.com/ebithril/relax-player"
+homepage = "https://github.com/ebithril/relax-player"
+readme = "README.md"
+keywords = ["audio", "relaxation", "ambient", "sounds", "tui"]
+categories = ["multimedia::audio", "command-line-utilities"]
 
 [dependencies]
 rodio = "0.19"
