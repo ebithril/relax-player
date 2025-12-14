@@ -1,5 +1,7 @@
 use anyhow::{Context, Result};
+use directories::ProjectDirs;
 use flate2::read::GzDecoder;
+use std::fs;
 use std::path::{Path, PathBuf};
 use tar::Archive;
 
@@ -77,13 +79,19 @@ pub fn download_sounds(github_user: &str, github_repo: &str, version: &str) -> R
 
     println!("Downloaded {} bytes", bytes.len());
 
-    // Extract to sounds directory
-    let sounds_dir = Config::sounds_dir()?;
+    // Extract to data directory (archive contains sounds/ folder)
+    let proj_dirs = ProjectDirs::from("com", "relax-player", "relax-player")
+        .context("Failed to determine data directory")?;
+    let data_dir = proj_dirs.data_dir();
+
+    fs::create_dir_all(data_dir)
+        .context("Failed to create data directory")?;
+
     let decoder = GzDecoder::new(&bytes[..]);
     let mut archive = Archive::new(decoder);
 
-    println!("Extracting to: {}", sounds_dir.display());
-    archive.unpack(&sounds_dir)
+    println!("Extracting to: {}", data_dir.display());
+    archive.unpack(data_dir)
         .context("Failed to extract sounds archive")?;
 
     // Verify all sounds were extracted

@@ -12,6 +12,10 @@ keywords = ["audio", "relaxation", "ambient", "sounds", "tui"]
 categories = ["multimedia::audio", "command-line-utilities"]
 exclude = ["sounds/*.mp3", "sounds.tar.gz"]
 
+[[bin]]
+name = "relax-player"
+path = "src/main.rs"
+
 [dependencies]
 rodio = "0.19"
 ratatui = "0.29"
