@@ -2,6 +2,8 @@
 
 A terminal-based sound player for creating relaxing ambient soundscapes. Features individual volume control for Rain, Thunder, and Campfire sounds with an alsamixer-style TUI interface.
 
+![relax-player](images/relax-player.gif)
+
 ## Features
 
 - Play multiple looping ambient sounds simultaneously
@@ -141,62 +143,7 @@ Settings persist between sessions, so your preferred volumes are restored when y
 
 This project uses GitHub Actions to automate the release process. Everything is handled automatically - just push a tag!
 
-#### Prerequisites (one-time setup)
-
-1. **Add sound files to the repository**:
-   ```bash
-   mkdir -p sounds
-   # Add your MP3 files:
-   # - sounds/rain.mp3
-   # - sounds/thunder.mp3
-   # - sounds/campfire.mp3
-   ```
-   Commit these files to the repository (they should be tracked in git).
-
-2. **Set up crates.io token**:
-   - Generate a token at https://crates.io/me/tokens
-   - Add it to GitHub repository secrets as `CARGO_REGISTRY_TOKEN`:
-     - Go to: Settings → Secrets and variables → Actions → New repository secret
-     - Name: `CARGO_REGISTRY_TOKEN`
-     - Value: Your crates.io API token
-
-#### Creating a Release
-
-1. **Update version in `Cargo.toml`**:
-   ```toml
-   version = "0.1.0"  # Update to your new version
-   ```
-
-2. **Commit and push**:
-   ```bash
-   git add Cargo.toml Cargo.lock
-   git commit -m "Bump version to 0.1.0"
-   git push
-   ```
-
-3. **Create and push a tag**:
-   ```bash
-   git tag v0.1.0
-   git push origin v0.1.0
-   ```
-
-That's it! The GitHub Actions workflow will automatically:
-- ✅ Verify the tag version matches `Cargo.toml`
-- ✅ Check that all required sound files exist
-- ✅ Create `sounds.tar.gz` from the `sounds/` directory
-- ✅ Build and test the project
-- ✅ Create a GitHub release with the tag
-- ✅ Upload `sounds.tar.gz` as a release asset
-- ✅ Publish the crate to crates.io
-
-You can monitor the progress in the "Actions" tab on GitHub.
-
-**Important Notes**:
-- The tag must be in the format `v{version}` (e.g., `v0.1.0`)
-- The tag version must exactly match the version in `Cargo.toml`
-- Sound files must be committed to the repository before tagging
-- The workflow file is at `.github/workflows/release.yml`
-
 ## License
 
-This project is open source and available for personal use.
+This project uses the MIT license
+
