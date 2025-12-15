@@ -17,7 +17,6 @@ use ratatui::{backend::CrosstermBackend, Terminal};
 use std::io;
 
 // GitHub repository information for downloading sounds
-// TODO: Update these with your actual GitHub username and repository name
 const GITHUB_USER: &str = "ebithril";
 const GITHUB_REPO: &str = "relax-player";
 
