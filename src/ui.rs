@@ -168,9 +168,7 @@ fn render_help(f: &mut Frame, area: Rect) {
             Span::styled("j/k", Style::default().add_modifier(Modifier::BOLD)),
             Span::raw(": Volume  "),
             Span::styled("m", Style::default().add_modifier(Modifier::BOLD)),
-            Span::raw(": Mute"),
-        ]),
-        Line::from(vec![
+            Span::raw(": Mute  "),
             Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
             Span::raw(": Quit"),
         ]),
