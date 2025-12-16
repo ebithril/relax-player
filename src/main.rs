@@ -86,11 +86,19 @@ fn handle_sounds(app: &mut App) -> Result<()> {
     };
 
     if should_download {
-        download::download_sounds(GITHUB_USER, GITHUB_REPO, current_version)?;
+        match download::download_sounds(GITHUB_USER, GITHUB_REPO, current_version) {
+            Ok(()) => {
+                // Update config with new version
+                app.config.sounds_version = Some(current_version.to_string());
+                app.config.save()?;
+            },
+            Err(error) => {
+                if !sounds_exist {
+                    panic!("{error:?}")
+                }
+            },
+        }
 
-        // Update config with new version
-        app.config.sounds_version = Some(current_version.to_string());
-        app.config.save()?;
     }
 
     Ok(())
