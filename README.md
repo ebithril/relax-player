@@ -1,8 +1,14 @@
 # Relax Player
 
-A terminal-based sound player for creating relaxing ambient soundscapes. Features individual volume control for Rain, Thunder, and Campfire sounds with an alsamixer-style TUI interface.
+ A lightweight, distraction-free alternative to web-based ambient players. Features individual volume control for Rain, Thunder, and Campfire sounds with an alsamixer-style TUI interface.
 
 ![relax-player](images/relax-player.gif)
+
+## Why relax-player?
+I built this because I wanted a simpler way to manage my focus environment:
+* **No more YouTube tabs:** Tired of manually balancing volumes for different "Rain & Thunder" videos every time.
+* **Lightweight:** Uses minimal CPU/RAM compared to a browser or heavy electron app.
+* **100% Offline:** Once sounds are downloaded, you don't need an internet connection. No tracking, no ads, just focus.
 
 ## Features
 
@@ -76,3 +82,12 @@ The config file stores:
 - Mute states
 - Master volume
 - Downloaded sounds version (for update tracking)
+
+## License
+
+The source code for **Relax Player** is licensed under the **MIT License**.
+
+**Audio Assets:**
+The ambient sounds (Rain, Thunder, Campfire) are sourced from Pixabay and are subject to the **Pixabay License**. They are free to use within this application but **cannot be redistributed or sold as standalone audio files**.
+
+See [LICENSE](LICENSE) and [CREDITS.md](CREDITS.md) for more details.
