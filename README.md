@@ -23,6 +23,21 @@ I built this because I wanted a simpler way to manage my focus environment:
 
 ## Installation
 
+### Prerequisites
+
+**Linux users:** ALSA development libraries are required to build the application:
+
+```bash
+# Debian/Ubuntu
+sudo apt-get install libasound2-dev
+
+# Fedora/RHEL
+sudo dnf install alsa-lib-devel
+
+# Arch Linux
+sudo pacman -S alsa-lib
+```
+
 ### From crates.io (recommended)
 
 ```bash
