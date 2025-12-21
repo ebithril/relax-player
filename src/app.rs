@@ -108,7 +108,6 @@ impl App {
                 if let Event::Key(key) = event::read()? {
                     if key.kind == KeyEventKind::Press {
                         self.handle_key_event(key)?;
-                        self.update_audio_volumes();
                     }
                 }
             }
@@ -220,6 +219,13 @@ impl App {
         self.selected_channel = self.selected_channel.prev();
     }
 
+    fn update_audio_volumes_and_save_config(&self) -> Result<()> {
+        self.config.save()?;
+        self.update_audio_volumes();
+
+        Ok(())
+    }
+
     fn update_audio_volumes(&self) {
         let rain_vol = self.config.effective_volume(Channel::Rain);
         let thunder_vol = self.config.effective_volume(Channel::Thunder);
@@ -245,7 +251,7 @@ impl App {
                 self.config.master_volume = (self.config.master_volume + 5).min(100);
             }
         }
-        self.config.save()?;
+        self.update_audio_volumes_and_save_config()?;
         Ok(())
     }
 
@@ -265,7 +271,7 @@ impl App {
                 self.config.master_volume = self.config.master_volume.saturating_sub(5);
             }
         }
-        self.config.save()?;
+        self.update_audio_volumes_and_save_config()?;
         Ok(())
     }
 
@@ -286,7 +292,7 @@ impl App {
                 return Ok(());
             }
         }
-        self.config.save()?;
+        self.update_audio_volumes_and_save_config()?;
         Ok(())
     }
 
