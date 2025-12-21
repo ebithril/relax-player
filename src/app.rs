@@ -1,5 +1,20 @@
+use crate::audio::AudioPlayer;
 use crate::config::Config;
+use crate::download;
+use crate::prompt;
+use crate::ui;
 use anyhow::Result;
+use crossterm::{
+    event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use ratatui::{backend::CrosstermBackend, Terminal};
+use std::io;
+
+// GitHub repository information for downloading sounds
+const GITHUB_USER: &str = "ebithril";
+const GITHUB_REPO: &str = "relax-player";
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Channel {
@@ -52,6 +67,7 @@ impl Channel {
 }
 
 pub struct App {
+    pub audio: AudioPlayer,
     pub config: Config,
     pub selected_channel: Channel,
     pub should_quit: bool,
@@ -60,25 +76,167 @@ pub struct App {
 impl App {
     pub fn new() -> Result<Self> {
         let config = Config::load()?;
+        let audio = AudioPlayer::new()?;
+
         Ok(Self {
+            audio,
             config,
             selected_channel: Channel::Rain,
             should_quit: false,
         })
     }
 
+    pub fn run(&mut self) -> Result<()> {
+        self.handle_sounds()?;
+
+        // Set initial volumes
+        self.update_audio_volumes();
+
+        // Setup terminal
+        enable_raw_mode()?;
+        let mut stdout = io::stdout();
+        execute!(stdout, EnterAlternateScreen)?;
+        let backend = CrosstermBackend::new(stdout);
+        let mut terminal = Terminal::new(backend)?;
+
+        loop {
+            // Draw UI
+            terminal.draw(|f| ui::render(f, &self))?;
+
+            // Handle events
+            if event::poll(std::time::Duration::from_millis(100))? {
+                if let Event::Key(key) = event::read()? {
+                    if key.kind == KeyEventKind::Press {
+                        self.handle_key_event(key)?;
+                    }
+                }
+            }
+
+            // Check if we should quit
+            if self.should_quit {
+                break;
+            }
+        }
+
+        // Restore terminal
+        disable_raw_mode()?;
+        execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+        terminal.show_cursor()?;
+
+        Ok(())
+    }
+
+    fn handle_key_event(&mut self, key: KeyEvent) -> Result<()> {
+        match key.code {
+            // Quit
+            KeyCode::Char('q') | KeyCode::Char('Q') => {
+                self.quit();
+            }
+            // Navigate left
+            KeyCode::Left | KeyCode::Char('h') => {
+                self.select_prev();
+            }
+            // Navigate right
+            KeyCode::Right | KeyCode::Char('l') => {
+                self.select_next();
+            }
+            // Volume up
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.increase_volume()?;
+            }
+            // Volume down
+            KeyCode::Down | KeyCode::Char('j') => {
+                self.decrease_volume()?;
+            }
+            // Toggle mute
+            KeyCode::Char('m') | KeyCode::Char('M') => {
+                self.toggle_mute()?;
+            }
+            _ => {}
+        }
+
+        Ok(())
+    }
+
+    /// Check if sounds need downloading and download
+    fn handle_sounds(&mut self) -> Result<()> {
+        // In debug mode, check CWD first and skip download if found
+        if cfg!(debug_assertions) && download::check_cwd_sounds() {
+            println!("Debug mode: Using sounds from ./sounds/");
+            return Ok(());
+        }
+
+        let current_version = env!("CARGO_PKG_VERSION");
+        let sounds_exist = download::sounds_exist()?;
+        let stored_version = self.config.sounds_version.as_deref();
+
+        // Check if we need to download sounds
+        let should_download = if !sounds_exist {
+            // First install - auto download
+            println!(
+                "Sounds not found. Downloading sounds for v{}...",
+                current_version
+            );
+            true
+        } else if download::needs_update(current_version, stored_version) {
+            // Version mismatch - prompt user
+            let message = format!(
+                "New sounds available for v{} (current: {}). Download now?",
+                current_version,
+                stored_version.unwrap_or("unknown")
+            );
+            prompt::prompt_yes_no(&message)?
+        } else {
+            // All good, sounds exist and version matches
+            false
+        };
+
+        if should_download {
+            match download::download_sounds(GITHUB_USER, GITHUB_REPO, current_version) {
+                Ok(()) => {
+                    // Update config with new version
+                    self.config.sounds_version = Some(current_version.to_string());
+                    self.config.save()?;
+                }
+                Err(error) => {
+                    if !sounds_exist {
+                        return Err(error.context("Failed to download required sound files. Check your internet connection and try again."));
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Move selection to the next channel (right)
-    pub fn select_next(&mut self) {
+    fn select_next(&mut self) {
         self.selected_channel = self.selected_channel.next();
     }
 
     /// Move selection to the previous channel (left)
-    pub fn select_prev(&mut self) {
+    fn select_prev(&mut self) {
         self.selected_channel = self.selected_channel.prev();
     }
 
+    fn update_audio_volumes_and_save_config(&self) -> Result<()> {
+        self.config.save()?;
+        self.update_audio_volumes();
+
+        Ok(())
+    }
+
+    fn update_audio_volumes(&self) {
+        let rain_vol = self.config.effective_volume(Channel::Rain);
+        let thunder_vol = self.config.effective_volume(Channel::Thunder);
+        let campfire_vol = self.config.effective_volume(Channel::Campfire);
+
+        self.audio
+            .update_volumes(rain_vol, thunder_vol, campfire_vol);
+    }
+
     /// Increase volume of selected channel
-    pub fn increase_volume(&mut self) -> Result<()> {
+    fn increase_volume(&mut self) -> Result<()> {
         match self.selected_channel {
             Channel::Rain => {
                 self.config.rain.volume = (self.config.rain.volume + 5).min(100);
@@ -93,12 +251,12 @@ impl App {
                 self.config.master_volume = (self.config.master_volume + 5).min(100);
             }
         }
-        self.config.save()?;
+        self.update_audio_volumes_and_save_config()?;
         Ok(())
     }
 
     /// Decrease volume of selected channel
-    pub fn decrease_volume(&mut self) -> Result<()> {
+    fn decrease_volume(&mut self) -> Result<()> {
         match self.selected_channel {
             Channel::Rain => {
                 self.config.rain.volume = self.config.rain.volume.saturating_sub(5);
@@ -113,12 +271,12 @@ impl App {
                 self.config.master_volume = self.config.master_volume.saturating_sub(5);
             }
         }
-        self.config.save()?;
+        self.update_audio_volumes_and_save_config()?;
         Ok(())
     }
 
     /// Toggle mute for selected channel
-    pub fn toggle_mute(&mut self) -> Result<()> {
+    fn toggle_mute(&mut self) -> Result<()> {
         match self.selected_channel {
             Channel::Rain => {
                 self.config.rain.muted = !self.config.rain.muted;
@@ -134,7 +292,7 @@ impl App {
                 return Ok(());
             }
         }
-        self.config.save()?;
+        self.update_audio_volumes_and_save_config()?;
         Ok(())
     }
 
@@ -159,7 +317,7 @@ impl App {
     }
 
     /// Quit the application
-    pub fn quit(&mut self) {
+    fn quit(&mut self) {
         self.should_quit = true;
     }
 }
