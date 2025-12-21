@@ -201,7 +201,7 @@ impl App {
                 }
                 Err(error) => {
                     if !sounds_exist {
-                        panic!("{error:?}")
+                        return Err(error.context("Failed to download required sound files. Check your internet connection and try again."));
                     }
                 }
             }
