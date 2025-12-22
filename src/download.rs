@@ -1,11 +1,14 @@
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
 use flate2::read::GzDecoder;
+use ratatui::{backend::CrosstermBackend, Terminal};
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 use tar::Archive;
 
 use crate::config::Config;
+use crate::prompt::{run_prompt, PromptType};
 
 const REQUIRED_SOUNDS: &[&str] = &["rain.mp3", "thunder.mp3", "campfire.mp3"];
 
@@ -55,13 +58,23 @@ pub fn sounds_exist() -> Result<bool> {
 }
 
 /// Download and extract sounds from GitHub release
-pub fn download_sounds(github_user: &str, github_repo: &str, version: &str) -> Result<()> {
+pub fn download_sounds(
+    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    github_user: &str,
+    github_repo: &str,
+    version: &str,
+) -> Result<()> {
     let url = format!(
         "https://github.com/{}/{}/releases/download/v{}/sounds.tar.gz",
         github_user, github_repo, version
     );
 
-    println!("Downloading sounds from: {}", url);
+    run_prompt(
+        terminal,
+        "Downloading",
+        &format!("Downloading sounds from GitHub release v{}...", version),
+        PromptType::Info,
+    )?;
 
     // Download the file
     let response = reqwest::blocking::get(&url)
@@ -77,7 +90,12 @@ pub fn download_sounds(github_user: &str, github_repo: &str, version: &str) -> R
     let bytes = response.bytes()
         .context("Failed to read download response")?;
 
-    println!("Downloaded {} bytes", bytes.len());
+    run_prompt(
+        terminal,
+        "Download Complete",
+        &format!("Downloaded {} KB", bytes.len() / 1024),
+        PromptType::Info,
+    )?;
 
     // Extract to data directory (archive contains sounds/ folder)
     let proj_dirs = ProjectDirs::from("com", "relax-player", "relax-player")
@@ -90,7 +108,13 @@ pub fn download_sounds(github_user: &str, github_repo: &str, version: &str) -> R
     let decoder = GzDecoder::new(&bytes[..]);
     let mut archive = Archive::new(decoder);
 
-    println!("Extracting to: {}", data_dir.display());
+    run_prompt(
+        terminal,
+        "Extracting",
+        "Extracting sound files...",
+        PromptType::Info,
+    )?;
+
     archive.unpack(data_dir)
         .context("Failed to extract sounds archive")?;
 
@@ -102,7 +126,13 @@ pub fn download_sounds(github_user: &str, github_repo: &str, version: &str) -> R
         );
     }
 
-    println!("Sounds downloaded successfully!");
+    run_prompt(
+        terminal,
+        "Success",
+        "Sounds downloaded and extracted successfully!",
+        PromptType::Info,
+    )?;
+
     Ok(())
 }
 

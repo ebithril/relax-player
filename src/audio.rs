@@ -17,15 +17,14 @@ pub struct AudioPlayer {
 impl AudioPlayer {
     /// Create a new audio player and load all sound files
     pub fn new() -> Result<Self> {
-        let (stream, stream_handle) = OutputStream::try_default()
-            .context("Failed to create audio output stream")?;
+        let (stream, stream_handle) =
+            OutputStream::try_default().context("Failed to create audio output stream")?;
 
-        let rain_sink = Sink::try_new(&stream_handle)
-            .context("Failed to create rain sink")?;
-        let thunder_sink = Sink::try_new(&stream_handle)
-            .context("Failed to create thunder sink")?;
-        let campfire_sink = Sink::try_new(&stream_handle)
-            .context("Failed to create campfire sink")?;
+        let rain_sink = Sink::try_new(&stream_handle).context("Failed to create rain sink")?;
+        let thunder_sink =
+            Sink::try_new(&stream_handle).context("Failed to create thunder sink")?;
+        let campfire_sink =
+            Sink::try_new(&stream_handle).context("Failed to create campfire sink")?;
 
         let player = Self {
             _stream: stream,
@@ -35,18 +34,22 @@ impl AudioPlayer {
             campfire_sink,
         };
 
+        Ok(player)
+    }
+
+    pub fn load_sounds_and_play(&mut self) -> Result<()> {
         // Load and start playing all sounds
         let sounds_dir = download::get_sounds_dir()?;
-        player.load_sound(&sounds_dir.join("rain.mp3"), &player.rain_sink)?;
-        player.load_sound(&sounds_dir.join("thunder.mp3"), &player.thunder_sink)?;
-        player.load_sound(&sounds_dir.join("campfire.mp3"), &player.campfire_sink)?;
+        self.load_sound(&sounds_dir.join("rain.mp3"), &self.rain_sink)?;
+        self.load_sound(&sounds_dir.join("thunder.mp3"), &self.thunder_sink)?;
+        self.load_sound(&sounds_dir.join("campfire.mp3"), &self.campfire_sink)?;
 
         // Start all sinks (they'll play at configured volumes)
-        player.rain_sink.play();
-        player.thunder_sink.play();
-        player.campfire_sink.play();
+        self.rain_sink.play();
+        self.thunder_sink.play();
+        self.campfire_sink.play();
 
-        Ok(player)
+        Ok(())
     }
 
     /// Load a sound file into a sink
@@ -58,8 +61,8 @@ impl AudioPlayer {
             );
         }
 
-        let file = File::open(path)
-            .context(format!("Failed to open sound file: {}", path.display()))?;
+        let file =
+            File::open(path).context(format!("Failed to open sound file: {}", path.display()))?;
         let source = Decoder::new(BufReader::new(file))
             .context(format!("Failed to decode sound file: {}", path.display()))?;
 

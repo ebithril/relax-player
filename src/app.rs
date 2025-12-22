@@ -87,17 +87,21 @@ impl App {
     }
 
     pub fn run(&mut self) -> Result<()> {
-        self.handle_sounds()?;
-
-        // Set initial volumes
-        self.update_audio_volumes();
-
         // Setup terminal
         enable_raw_mode()?;
         let mut stdout = io::stdout();
         execute!(stdout, EnterAlternateScreen)?;
         let backend = CrosstermBackend::new(stdout);
         let mut terminal = Terminal::new(backend)?;
+
+        self.handle_sounds(&mut terminal)?;
+
+        // Set initial volumes
+        self.update_audio_volumes();
+
+        self.audio.load_sounds_and_play()?;
+
+        terminal.clear()?;
 
         loop {
             // Draw UI
@@ -159,25 +163,34 @@ impl App {
     }
 
     /// Check if sounds need downloading and download
-    fn handle_sounds(&mut self) -> Result<()> {
+    fn handle_sounds(
+        &mut self,
+        terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    ) -> Result<()> {
         // In debug mode, check CWD first and skip download if found
         if cfg!(debug_assertions) && download::check_cwd_sounds() {
-            println!("Debug mode: Using sounds from ./sounds/");
+            prompt::run_prompt(
+                terminal,
+                "Debug Mode",
+                "Using sounds from ./sounds/ directory",
+                prompt::PromptType::Info,
+            )?;
             return Ok(());
         }
 
         let current_version = env!("CARGO_PKG_VERSION");
         let sounds_exist = download::sounds_exist()?;
         let stored_version = self.config.sounds_version.as_deref();
+        let prompt_title = "Download Sounds";
 
         // Check if we need to download sounds
         let should_download = if !sounds_exist {
-            // First install - auto download
-            println!(
+            let message = format!(
                 "Sounds not found. Downloading sounds for v{}...",
                 current_version
             );
-            true
+
+            prompt::run_prompt(terminal, prompt_title, &message, prompt::PromptType::Info)?
         } else if download::needs_update(current_version, stored_version) {
             // Version mismatch - prompt user
             let message = format!(
@@ -185,14 +198,15 @@ impl App {
                 current_version,
                 stored_version.unwrap_or("unknown")
             );
-            prompt::prompt_yes_no(&message)?
+
+            prompt::run_prompt(terminal, prompt_title, &message, prompt::PromptType::YesNo)?
         } else {
             // All good, sounds exist and version matches
             false
         };
 
         if should_download {
-            match download::download_sounds(GITHUB_USER, GITHUB_REPO, current_version) {
+            match download::download_sounds(terminal, GITHUB_USER, GITHUB_REPO, current_version) {
                 Ok(()) => {
                     // Update config with new version
                     self.config.sounds_version = Some(current_version.to_string());
@@ -200,7 +214,23 @@ impl App {
                 }
                 Err(error) => {
                     if !sounds_exist {
-                        return Err(error.context("Failed to download required sound files. Check your internet connection and try again."));
+                        // Show error in TUI prompt
+                        let error_msg = format!(
+                            "Failed to download required sound files.\n\nError: {}\n\nCheck your internet connection and try again.",
+                            error
+                        );
+                        prompt::run_prompt(
+                            terminal,
+                            "Error",
+                            &error_msg,
+                            prompt::PromptType::Error,
+                        )?;
+
+                        // Clean up terminal before exiting
+                        disable_raw_mode()?;
+                        execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+
+                        return Err(error.context("Failed to download required sound files"));
                     }
                 }
             }
