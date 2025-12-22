@@ -169,7 +169,12 @@ impl App {
     ) -> Result<()> {
         // In debug mode, check CWD first and skip download if found
         if cfg!(debug_assertions) && download::check_cwd_sounds() {
-            println!("Debug mode: Using sounds from ./sounds/");
+            prompt::run_prompt(
+                terminal,
+                "Debug Mode",
+                "Using sounds from ./sounds/ directory",
+                prompt::PromptType::Info,
+            )?;
             return Ok(());
         }
 
@@ -201,7 +206,7 @@ impl App {
         };
 
         if should_download {
-            match download::download_sounds(GITHUB_USER, GITHUB_REPO, current_version) {
+            match download::download_sounds(terminal, GITHUB_USER, GITHUB_REPO, current_version) {
                 Ok(()) => {
                     // Update config with new version
                     self.config.sounds_version = Some(current_version.to_string());
@@ -209,7 +214,23 @@ impl App {
                 }
                 Err(error) => {
                     if !sounds_exist {
-                        return Err(error.context("Failed to download required sound files. Check your internet connection and try again."));
+                        // Show error in TUI prompt
+                        let error_msg = format!(
+                            "Failed to download required sound files.\n\nError: {}\n\nCheck your internet connection and try again.",
+                            error
+                        );
+                        prompt::run_prompt(
+                            terminal,
+                            "Error",
+                            &error_msg,
+                            prompt::PromptType::Error,
+                        )?;
+
+                        // Clean up terminal before exiting
+                        disable_raw_mode()?;
+                        execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+
+                        return Err(error.context("Failed to download required sound files"));
                     }
                 }
             }
