@@ -10,9 +10,16 @@ use ratatui::{
 };
 use std::io;
 
+pub enum PromptType {
+    YesNo,
+    Info,
+}
+
 pub fn run_prompt(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    title: &str,
     message: &str,
+    prompt_type: PromptType,
 ) -> Result<bool> {
     loop {
         terminal.draw(|f| {
@@ -26,7 +33,7 @@ pub fn run_prompt(
                 .split(f.area());
 
             let block = Block::default()
-                .title("Download Sounds")
+                .title(title)
                 .borders(Borders::ALL)
                 .style(Style::default().fg(Color::Cyan));
 
@@ -37,21 +44,28 @@ pub fn run_prompt(
                     Style::default().add_modifier(Modifier::BOLD),
                 )),
                 Line::from(""),
-                Line::from(vec![
-                    Span::styled("Press ", Style::default()),
-                    Span::styled(
-                        "y",
-                        Style::default()
-                            .fg(Color::Green)
-                            .add_modifier(Modifier::BOLD),
-                    ),
-                    Span::styled(" to download or ", Style::default()),
-                    Span::styled(
-                        "n",
-                        Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
-                    ),
-                    Span::styled(" to skip", Style::default()),
-                ]),
+                match prompt_type {
+                    PromptType::YesNo => Line::from(vec![
+                        Span::styled("Press ", Style::default()),
+                        Span::styled(
+                            "y",
+                            Style::default()
+                                .fg(Color::Green)
+                                .add_modifier(Modifier::BOLD),
+                        ),
+                        Span::styled(" to download or ", Style::default()),
+                        Span::styled(
+                            "n",
+                            Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+                        ),
+                        Span::styled(" to skip", Style::default()),
+                    ]),
+                    PromptType::Info => Line::from(vec![
+                        Span::styled("Press ", Style::default()),
+                        Span::styled("enter", Style::default().add_modifier(Modifier::BOLD)),
+                        Span::styled(" to continue.", Style::default()),
+                    ]),
+                },
             ];
 
             let paragraph = Paragraph::new(text)
@@ -62,10 +76,16 @@ pub fn run_prompt(
         })?;
 
         if let Event::Key(key) = event::read()? {
-            match key.code {
-                KeyCode::Char('y') | KeyCode::Char('Y') => return Ok(true),
-                KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => return Ok(false),
-                _ => {}
+            match prompt_type {
+                PromptType::YesNo => match key.code {
+                    KeyCode::Char('y') | KeyCode::Char('Y') => return Ok(true),
+                    KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => return Ok(false),
+                    _ => {}
+                },
+                PromptType::Info => match key.code {
+                    KeyCode::Enter => return Ok(true),
+                    _ => {}
+                },
             }
         }
     }

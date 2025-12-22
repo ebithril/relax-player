@@ -99,6 +99,10 @@ impl App {
         // Set initial volumes
         self.update_audio_volumes();
 
+        self.audio.load_sounds_and_play()?;
+
+        terminal.clear()?;
+
         loop {
             // Draw UI
             terminal.draw(|f| ui::render(f, &self))?;
@@ -172,15 +176,16 @@ impl App {
         let current_version = env!("CARGO_PKG_VERSION");
         let sounds_exist = download::sounds_exist()?;
         let stored_version = self.config.sounds_version.as_deref();
+        let prompt_title = "Download Sounds";
 
         // Check if we need to download sounds
         let should_download = if !sounds_exist {
-            // First install - auto download
-            println!(
+            let message = format!(
                 "Sounds not found. Downloading sounds for v{}...",
                 current_version
             );
-            true
+
+            prompt::run_prompt(terminal, prompt_title, &message, prompt::PromptType::Info)?
         } else if download::needs_update(current_version, stored_version) {
             // Version mismatch - prompt user
             let message = format!(
@@ -188,7 +193,8 @@ impl App {
                 current_version,
                 stored_version.unwrap_or("unknown")
             );
-            prompt::run_prompt(terminal, &message)?
+
+            prompt::run_prompt(terminal, prompt_title, &message, prompt::PromptType::YesNo)?
         } else {
             // All good, sounds exist and version matches
             false
