@@ -1,5 +1,7 @@
 # Relax Player
 
+![Crates.io Version](https://img.shields.io/crates/v/relax-player)
+
  A lightweight, distraction-free alternative to web-based ambient players. Features individual volume control for Rain, Thunder, and Campfire sounds with an alsamixer-style TUI interface.
 
 ![relax-player](images/relax-player.gif)
