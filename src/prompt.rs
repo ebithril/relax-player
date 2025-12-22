@@ -10,30 +10,10 @@ use ratatui::{
 };
 use std::io;
 
-/// Show a simple yes/no prompt and return true if user selects yes
-pub fn prompt_yes_no(message: &str) -> Result<bool> {
-    let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
-    crossterm::terminal::enable_raw_mode()?;
-    crossterm::execute!(
-        terminal.backend_mut(),
-        crossterm::terminal::EnterAlternateScreen,
-        crossterm::event::EnableMouseCapture
-    )?;
-
-    let result = run_prompt(&mut terminal, message);
-
-    // Cleanup
-    crossterm::execute!(
-        terminal.backend_mut(),
-        crossterm::terminal::LeaveAlternateScreen,
-        crossterm::event::DisableMouseCapture
-    )?;
-    crossterm::terminal::disable_raw_mode()?;
-
-    result
-}
-
-fn run_prompt(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, message: &str) -> Result<bool> {
+pub fn run_prompt(
+    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    message: &str,
+) -> Result<bool> {
     loop {
         terminal.draw(|f| {
             let chunks = Layout::default()
@@ -59,9 +39,17 @@ fn run_prompt(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, message: &s
                 Line::from(""),
                 Line::from(vec![
                     Span::styled("Press ", Style::default()),
-                    Span::styled("y", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+                    Span::styled(
+                        "y",
+                        Style::default()
+                            .fg(Color::Green)
+                            .add_modifier(Modifier::BOLD),
+                    ),
                     Span::styled(" to download or ", Style::default()),
-                    Span::styled("n", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
+                    Span::styled(
+                        "n",
+                        Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+                    ),
                     Span::styled(" to skip", Style::default()),
                 ]),
             ];

@@ -87,17 +87,17 @@ impl App {
     }
 
     pub fn run(&mut self) -> Result<()> {
-        self.handle_sounds()?;
-
-        // Set initial volumes
-        self.update_audio_volumes();
-
         // Setup terminal
         enable_raw_mode()?;
         let mut stdout = io::stdout();
         execute!(stdout, EnterAlternateScreen)?;
         let backend = CrosstermBackend::new(stdout);
         let mut terminal = Terminal::new(backend)?;
+
+        self.handle_sounds(&mut terminal)?;
+
+        // Set initial volumes
+        self.update_audio_volumes();
 
         loop {
             // Draw UI
@@ -159,7 +159,10 @@ impl App {
     }
 
     /// Check if sounds need downloading and download
-    fn handle_sounds(&mut self) -> Result<()> {
+    fn handle_sounds(
+        &mut self,
+        terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    ) -> Result<()> {
         // In debug mode, check CWD first and skip download if found
         if cfg!(debug_assertions) && download::check_cwd_sounds() {
             println!("Debug mode: Using sounds from ./sounds/");
@@ -185,7 +188,7 @@ impl App {
                 current_version,
                 stored_version.unwrap_or("unknown")
             );
-            prompt::prompt_yes_no(&message)?
+            prompt::run_prompt(terminal, &message)?
         } else {
             // All good, sounds exist and version matches
             false
