@@ -4,7 +4,7 @@
 
  A lightweight, distraction-free alternative to web-based ambient players. Features individual volume control for Rain, Thunder, and Campfire sounds with an alsamixer-style TUI interface.
 
-![relax-player](images/relax-player.gif)
+![Made with VHS](https://vhs.charm.sh/vhs-1tIt9gPS1g7zelND58jSaZ.gif)
 
 ## Why relax-player?
 I built this because I wanted a simpler way to manage my focus environment:
