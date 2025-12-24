@@ -13,8 +13,8 @@ pub fn render(f: &mut Frame, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Min(0),      // Main area
-            Constraint::Length(3),   // Help text
+            Constraint::Min(0),    // Main area
+            Constraint::Length(3), // Help text
         ])
         .split(f.area());
 
@@ -58,9 +58,9 @@ fn render_channel_bar(f: &mut Frame, app: &App, channel: Channel, area: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1),   // Title
-            Constraint::Min(0),      // Bar
-            Constraint::Length(1),   // Volume %
+            Constraint::Length(1), // Title
+            Constraint::Min(0),    // Bar
+            Constraint::Length(1), // Volume %
         ])
         .split(area);
 
@@ -89,13 +89,14 @@ fn render_channel_bar(f: &mut Frame, app: &App, channel: Channel, area: Rect) {
     // Render volume percentage and mute indicator
     let mute_indicator = if is_muted { " 🔇" } else { "" };
     let vol_text = format!("[{}%]{}", volume, mute_indicator);
-    let vol_paragraph = Paragraph::new(vol_text)
-        .alignment(Alignment::Center)
-        .style(if is_selected {
-            Style::default().fg(Color::Yellow)
-        } else {
-            Style::default()
-        });
+    let vol_paragraph =
+        Paragraph::new(vol_text)
+            .alignment(Alignment::Center)
+            .style(if is_selected {
+                Style::default().fg(Color::Yellow)
+            } else {
+                Style::default()
+            });
     f.render_widget(vol_paragraph, chunks[2]);
 }
 
@@ -160,19 +161,17 @@ impl Widget for VolumeBar {
 
 /// Render help text
 fn render_help(f: &mut Frame, area: Rect) {
-    let help_lines = vec![
-        Line::from(vec![
-            Span::raw("←/→ "),
-            Span::styled("h/l", Style::default().add_modifier(Modifier::BOLD)),
-            Span::raw(": Select  ↑/↓ "),
-            Span::styled("j/k", Style::default().add_modifier(Modifier::BOLD)),
-            Span::raw(": Volume  "),
-            Span::styled("m", Style::default().add_modifier(Modifier::BOLD)),
-            Span::raw(": Mute  "),
-            Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
-            Span::raw(": Quit"),
-        ]),
-    ];
+    let help_lines = vec![Line::from(vec![
+        Span::raw("←/→ "),
+        Span::styled("h/l", Style::default().add_modifier(Modifier::BOLD)),
+        Span::raw(": Select  ↑/↓ "),
+        Span::styled("j/k", Style::default().add_modifier(Modifier::BOLD)),
+        Span::raw(": Volume  "),
+        Span::styled("m", Style::default().add_modifier(Modifier::BOLD)),
+        Span::raw(": Mute  "),
+        Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
+        Span::raw(": Quit"),
+    ])];
 
     let help = Paragraph::new(help_lines)
         .block(Block::default().borders(Borders::ALL))

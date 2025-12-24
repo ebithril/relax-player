@@ -21,11 +21,21 @@ impl Default for SoundConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Config {
+struct ConfigV1 {
     pub rain: SoundConfig,
     pub thunder: SoundConfig,
     pub campfire: SoundConfig,
     pub master_volume: u8, // 0-100
+    #[serde(default)]
+    pub sounds_version: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Config {
+    pub rain: SoundConfig,
+    pub thunder: SoundConfig,
+    pub campfire: SoundConfig,
+    pub master: SoundConfig, // 0-100
     #[serde(default)]
     pub sounds_version: Option<String>,
 }
@@ -36,7 +46,7 @@ impl Default for Config {
             rain: SoundConfig::default(),
             thunder: SoundConfig::default(),
             campfire: SoundConfig::default(),
-            master_volume: 70,
+            master: SoundConfig::default(),
             sounds_version: None,
         }
     }
@@ -60,15 +70,40 @@ impl Config {
 
         if path.exists() {
             let contents = fs::read_to_string(&path).context("Failed to read config file")?;
-            let config: Config =
-                serde_json::from_str(&contents).context("Failed to parse config file")?;
-            Ok(config)
+            Self::load_config_string(&contents)
         } else {
             // Create default config and save it
             let config = Config::default();
             config.save()?;
             Ok(config)
         }
+    }
+
+    fn load_config_string(contents: &str) -> Result<Self> {
+        let mut was_converted = false;
+        let config = match serde_json::from_str::<Self>(&contents) {
+            Ok(t) => t,
+            Err(_) => {
+                let configv1 = serde_json::from_str::<ConfigV1>(&contents)?;
+                was_converted = true;
+                Self {
+                    rain: configv1.rain,
+                    thunder: configv1.thunder,
+                    campfire: configv1.campfire,
+                    sounds_version: configv1.sounds_version,
+                    master: SoundConfig {
+                        volume: configv1.master_volume,
+                        muted: false,
+                    },
+                }
+            }
+        };
+
+        if was_converted {
+            config.save()?;
+        }
+
+        Ok(config)
     }
 
     /// Save config to file
@@ -85,13 +120,19 @@ impl Config {
             Channel::Rain => &self.rain,
             Channel::Thunder => &self.thunder,
             Channel::Campfire => &self.campfire,
-            Channel::Master => panic!("Not allowed to use master"),
+            Channel::Master => &self.master,
+        };
+
+        let master_volume = if channel == Channel::Master {
+            1.0
+        } else {
+            self.effective_volume(Channel::Master)
         };
 
         if sound_config.muted {
             0.0
         } else {
-            (sound_config.volume as f32 / 100.0) * (self.master_volume as f32 / 100.0)
+            (sound_config.volume as f32 / 100.0) * master_volume
         }
     }
 

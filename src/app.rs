@@ -278,7 +278,7 @@ impl App {
                 self.config.campfire.volume = (self.config.campfire.volume + 5).min(100);
             }
             Channel::Master => {
-                self.config.master_volume = (self.config.master_volume + 5).min(100);
+                self.config.master.volume = (self.config.master.volume + 5).min(100);
             }
         }
         self.update_audio_volumes_and_save_config()?;
@@ -298,7 +298,7 @@ impl App {
                 self.config.campfire.volume = self.config.campfire.volume.saturating_sub(5);
             }
             Channel::Master => {
-                self.config.master_volume = self.config.master_volume.saturating_sub(5);
+                self.config.master.volume = self.config.master.volume.saturating_sub(5);
             }
         }
         self.update_audio_volumes_and_save_config()?;
@@ -318,8 +318,7 @@ impl App {
                 self.config.campfire.muted = !self.config.campfire.muted;
             }
             Channel::Master => {
-                // Master doesn't have mute, ignore
-                return Ok(());
+                self.config.master.muted = !self.config.master.muted;
             }
         }
         self.update_audio_volumes_and_save_config()?;
@@ -332,7 +331,7 @@ impl App {
             Channel::Rain => self.config.rain.volume,
             Channel::Thunder => self.config.thunder.volume,
             Channel::Campfire => self.config.campfire.volume,
-            Channel::Master => self.config.master_volume,
+            Channel::Master => self.config.master.volume,
         }
     }
 
@@ -342,7 +341,7 @@ impl App {
             Channel::Rain => self.config.rain.muted,
             Channel::Thunder => self.config.thunder.muted,
             Channel::Campfire => self.config.campfire.muted,
-            Channel::Master => false,
+            Channel::Master => self.config.master.muted,
         }
     }
 
