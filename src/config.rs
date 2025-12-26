@@ -79,30 +79,35 @@ impl Config {
         }
     }
 
+    // Handle loading different versions of the config
+    // TODO: Figure out a better way to convert between versions, this is fine for now but will get
+    // anoying if we get 3-4 versions to handle
     fn load_config_string(contents: &str) -> Result<Self> {
-        let mut was_converted = false;
-        let config = match serde_json::from_str::<Self>(&contents) {
-            Ok(t) => t,
-            Err(_) => {
-                let configv1 = serde_json::from_str::<ConfigV1>(&contents)?;
-                was_converted = true;
-                Self {
-                    rain: configv1.rain,
-                    thunder: configv1.thunder,
-                    campfire: configv1.campfire,
-                    sounds_version: configv1.sounds_version,
-                    master: SoundConfig {
-                        volume: configv1.master_volume,
-                        muted: false,
-                    },
-                }
-            }
-        };
+        let v: serde_json::Value =
+            serde_json::from_str(contents).context("Failed to parse config file as JSON")?;
 
-        if was_converted {
+        // If master_volume exists and is number then this should be v1 config
+        if v.get("master_volume").is_some() && v.get("master_volume").unwrap().is_number() {
+            let configv1: ConfigV1 =
+                serde_json::from_value(v).context("Failed to parse old config format")?;
+            let config = Self {
+                rain: configv1.rain,
+                thunder: configv1.thunder,
+                campfire: configv1.campfire,
+                sounds_version: configv1.sounds_version,
+                master: SoundConfig {
+                    volume: configv1.master_volume,
+                    muted: false,
+                },
+            };
+
+            // Save the converted version, to avoid this on each startup
             config.save()?;
+            return Ok(config);
         }
 
+        let config: Self =
+            serde_json::from_value(v).context("Failed to parse new config format")?;
         Ok(config)
     }
 
