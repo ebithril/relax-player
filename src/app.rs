@@ -4,13 +4,8 @@ use crate::download;
 use crate::prompt;
 use crate::ui;
 use anyhow::Result;
-use crossterm::{
-    event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
-use ratatui::{backend::CrosstermBackend, Terminal};
-use std::io;
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
+use ratatui::DefaultTerminal;
 
 // GitHub repository information for downloading sounds
 const GITHUB_USER: &str = "ebithril";
@@ -87,12 +82,7 @@ impl App {
     }
 
     pub fn run(&mut self) -> Result<()> {
-        // Setup terminal
-        enable_raw_mode()?;
-        let mut stdout = io::stdout();
-        execute!(stdout, EnterAlternateScreen)?;
-        let backend = CrosstermBackend::new(stdout);
-        let mut terminal = Terminal::new(backend)?;
+        let mut terminal = ratatui::init();
 
         self.handle_sounds(&mut terminal)?;
 
@@ -122,10 +112,7 @@ impl App {
             }
         }
 
-        // Restore terminal
-        disable_raw_mode()?;
-        execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
-        terminal.show_cursor()?;
+        ratatui::restore();
 
         Ok(())
     }
@@ -163,10 +150,7 @@ impl App {
     }
 
     /// Check if sounds need downloading and download
-    fn handle_sounds(
-        &mut self,
-        terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
-    ) -> Result<()> {
+    fn handle_sounds(&mut self, terminal: &mut DefaultTerminal) -> Result<()> {
         // In debug mode, check CWD first and skip download if found
         if cfg!(debug_assertions) && download::check_cwd_sounds() {
             prompt::run_prompt(
@@ -227,8 +211,7 @@ impl App {
                         )?;
 
                         // Clean up terminal before exiting
-                        disable_raw_mode()?;
-                        execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+                        ratatui::restore();
 
                         return Err(error.context("Failed to download required sound files"));
                     }
