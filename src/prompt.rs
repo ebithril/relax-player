@@ -1,14 +1,12 @@
 use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
-    backend::CrosstermBackend,
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
-    Terminal,
+    DefaultTerminal,
 };
-use std::io;
 
 pub enum PromptType {
     YesNo,
@@ -17,7 +15,7 @@ pub enum PromptType {
 }
 
 pub fn run_prompt(
-    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    terminal: &mut DefaultTerminal,
     title: &str,
     message: &str,
     prompt_type: PromptType,
@@ -69,9 +67,7 @@ pub fn run_prompt(
                     Span::styled("Press ", Style::default()),
                     Span::styled(
                         "enter",
-                        Style::default()
-                            .fg(Color::Red)
-                            .add_modifier(Modifier::BOLD),
+                        Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
                     ),
                     Span::styled(" to exit.", Style::default()),
                 ]),

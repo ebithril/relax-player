@@ -1,9 +1,8 @@
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
 use flate2::read::GzDecoder;
-use ratatui::{backend::CrosstermBackend, Terminal};
+use ratatui::DefaultTerminal;
 use std::fs;
-use std::io;
 use std::path::{Path, PathBuf};
 use tar::Archive;
 
@@ -59,7 +58,7 @@ pub fn sounds_exist() -> Result<bool> {
 
 /// Download and extract sounds from GitHub release
 pub fn download_sounds(
-    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    terminal: &mut DefaultTerminal,
     github_user: &str,
     github_repo: &str,
     version: &str,
@@ -77,8 +76,7 @@ pub fn download_sounds(
     )?;
 
     // Download the file
-    let response = reqwest::blocking::get(&url)
-        .context("Failed to download sounds")?;
+    let response = reqwest::blocking::get(&url).context("Failed to download sounds")?;
 
     if !response.status().is_success() {
         anyhow::bail!(
@@ -87,7 +85,8 @@ pub fn download_sounds(
         );
     }
 
-    let bytes = response.bytes()
+    let bytes = response
+        .bytes()
         .context("Failed to read download response")?;
 
     run_prompt(
@@ -102,8 +101,7 @@ pub fn download_sounds(
         .context("Failed to determine data directory")?;
     let data_dir = proj_dirs.data_dir();
 
-    fs::create_dir_all(data_dir)
-        .context("Failed to create data directory")?;
+    fs::create_dir_all(data_dir).context("Failed to create data directory")?;
 
     let decoder = GzDecoder::new(&bytes[..]);
     let mut archive = Archive::new(decoder);
@@ -115,7 +113,8 @@ pub fn download_sounds(
         PromptType::Info,
     )?;
 
-    archive.unpack(data_dir)
+    archive
+        .unpack(data_dir)
         .context("Failed to extract sounds archive")?;
 
     // Verify all sounds were extracted
