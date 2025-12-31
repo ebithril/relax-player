@@ -98,10 +98,11 @@ pub fn run_prompt(
                     KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => return Ok(false),
                     _ => {}
                 },
-                PromptType::Error => match key.code {
-                    KeyCode::Enter => return Ok(false),
-                    _ => {}
-                },
+                PromptType::Error => {
+                    if KeyCode::Enter == key.code {
+                        return Ok(false);
+                    }
+                }
                 PromptType::Info => unreachable!("Info handled above"),
             }
         }

@@ -95,7 +95,7 @@ impl App {
 
         loop {
             // Draw UI
-            terminal.draw(|f| ui::render(f, &self))?;
+            terminal.draw(|f| ui::render(f, self))?;
 
             // Handle events
             if event::poll(std::time::Duration::from_millis(100))? {
