@@ -30,7 +30,7 @@ struct ConfigV1 {
     pub sounds_version: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub rain: SoundConfig,
     pub thunder: SoundConfig,
@@ -38,18 +38,6 @@ pub struct Config {
     pub master: SoundConfig, // 0-100
     #[serde(default)]
     pub sounds_version: Option<String>,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            rain: SoundConfig::default(),
-            thunder: SoundConfig::default(),
-            campfire: SoundConfig::default(),
-            master: SoundConfig::default(),
-            sounds_version: None,
-        }
-    }
 }
 
 impl Config {
