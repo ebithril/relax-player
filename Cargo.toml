@@ -1,6 +1,6 @@
 [package]
 name = "relax-player"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2021"
 authors = ["ebithril"]
 description = "A terminal-based relaxation sound player with ambient sounds like rain, thunder, and campfire"
