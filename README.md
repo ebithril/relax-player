@@ -46,6 +46,12 @@ sudo pacman -S alsa-lib
 cargo install relax-player
 ```
 
+### From Arch User Repository(AUR)
+
+```bash
+paru -S relax-player
+```
+
 On first run, the application will automatically download the sound files for you.
 
 ### From source
